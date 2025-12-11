@@ -14,12 +14,22 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 3.0"
     }
+
+    # cloudflare config
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 5"
+    }
+
   }
 }
 
-
 provider "aws" {
   region = var.region
+}
+
+provider "cloudflare" {
+  api_token = var.cloudflare_api_token
 }
 
 resource "aws_instance" "instance_1" {
@@ -187,20 +197,36 @@ resource "aws_lb" "load_balancer" {
 
 }
 
-resource "aws_route53_zone" "primary" {
-  name = var.domain
+# resource "aws_route53_zone" "primary" {
+#   name = var.domain
+# }
+#
+# resource "aws_route53_record" "root" {
+#   zone_id = aws_route53_zone.primary.zone_id
+#   name    = var.domain
+#   type    = "A"
+#
+#   alias {
+#     name                   = aws_lb.load_balancer.dns_name
+#     zone_id                = aws_lb.load_balancer.zone_id
+#     evaluate_target_health = true
+#   }
+# }
+
+# cloudflare dns config
+data "cloudflare_zone" "primary" { 
+  filter = {
+    name = "ashen-dissanayake.fyi"
+  }
 }
 
-resource "aws_route53_record" "root" {
-  zone_id = aws_route53_zone.primary.zone_id
-  name    = var.domain
-  type    = "A"
-
-  alias {
-    name                   = aws_lb.load_balancer.dns_name
-    zone_id                = aws_lb.load_balancer.zone_id
-    evaluate_target_health = true
-  }
+resource "cloudflare_dns_record" "terrform_subdomain" {
+  zone_id = data.cloudflare_zone.primary.id
+  name    = "terraform"
+  type    = "CNAME"
+  content = aws_lb.load_balancer.dns_name
+  ttl     = 1
+  proxied = false
 }
 
 resource "aws_db_instance" "db_instance" {

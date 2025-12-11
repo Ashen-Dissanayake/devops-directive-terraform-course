@@ -1,24 +1,34 @@
 terraform {
   # Assumes s3 bucket and dynamo DB table already set up
   # See /code/03-basics/aws-backend
-  backend "s3" {
-    bucket         = "devops-directive-tf-state"
-    key            = "03-basics/web-app/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "terraform-state-locking"
-    encrypt        = true
-  }
+  # backend "s3" {
+  #   bucket         = "devops-directive-tf-state"
+  #   key            = "03-basics/web-app/terraform.tfstate"
+  #   region         = "us-east-1"
+  #   dynamodb_table = "terraform-state-locking"
+  #   encrypt        = true
+  # }
 
   required_providers {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 3.0"
     }
+
+    # cloudflare config
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 5"
+    }
   }
 }
 
 provider "aws" {
   region = "us-east-1"
+}
+
+provider "cloudflare" {
+  api_token = var.cloudflare_api_token
 }
 
 resource "aws_instance" "instance_1" {
@@ -44,7 +54,7 @@ resource "aws_instance" "instance_2" {
 }
 
 resource "aws_s3_bucket" "bucket" {
-  bucket_prefix = "devops-directive-web-app-data"
+  bucket_prefix = "devops-terraform-webapp-data"
   force_destroy = true
 }
 
@@ -186,21 +196,38 @@ resource "aws_lb" "load_balancer" {
 
 }
 
-resource "aws_route53_zone" "primary" {
-  name = "devopsdeployed.com"
-}
+# resource "aws_route53_zone" "primary" {
+#   name = "devopsdeployed.com"
+# }
+#
+# resource "aws_route53_record" "root" {
+#   zone_id = aws_route53_zone.primary.zone_id
+#   name    = "devopsdeployed.com"
+#   type    = "A"
+#
+#   alias {
+#     name                   = aws_lb.load_balancer.dns_name
+#     zone_id                = aws_lb.load_balancer.zone_id
+#     evaluate_target_health = true
+#   }
+# }
 
-resource "aws_route53_record" "root" {
-  zone_id = aws_route53_zone.primary.zone_id
-  name    = "devopsdeployed.com"
-  type    = "A"
-
-  alias {
-    name                   = aws_lb.load_balancer.dns_name
-    zone_id                = aws_lb.load_balancer.zone_id
-    evaluate_target_health = true
+# cloudflare dns config
+data "cloudflare_zone" "primary" { 
+  filter = {
+    name = "ashen-dissanayake.fyi"
   }
 }
+
+resource "cloudflare_dns_record" "terrform_subdomain" {
+  zone_id = data.cloudflare_zone.primary.id
+  name    = "terraform"
+  type    = "CNAME"
+  content = aws_lb.load_balancer.dns_name
+  ttl     = 1
+  proxied = false
+}
+
 
 resource "aws_db_instance" "db_instance" {
   allocated_storage = 20
@@ -211,8 +238,8 @@ resource "aws_db_instance" "db_instance" {
   auto_minor_version_upgrade = true
   storage_type               = "standard"
   engine                     = "postgres"
-  engine_version             = "12"
-  instance_class             = "db.t2.micro"
+  engine_version             = "17"
+  instance_class             = "db.t3.micro"
   name                       = "mydb"
   username                   = "foo"
   password                   = "foobarbaz"

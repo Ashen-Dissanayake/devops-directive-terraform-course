@@ -1,0 +1,3 @@
+DB_USERNAME=foo
+DB_PASSWORD=foobarbaz
+cloudflare_api_token="QYXXvHtVgmQDSl7nn9nWNurGYjD-q37ukOHsdhOV"

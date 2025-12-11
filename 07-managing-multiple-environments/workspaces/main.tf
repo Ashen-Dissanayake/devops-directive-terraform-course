@@ -1,25 +1,34 @@
 terraform {
   # Assumes s3 bucket and dynamo DB table already set up
   # See /code/03-basics/aws-backend
-  backend "s3" {
-    bucket         = "devops-directive-tf-state"
-    key            = "07-managing-multiple-environments/workspaces/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "terraform-state-locking"
-    encrypt        = true
-  }
-
+  # backend "s3" {
+  #   bucket         = "devops-directive-tf-state"
+  #   key            = "07-managing-multiple-environments/workspaces/terraform.tfstate"
+  #   region         = "us-east-1"
+  #   dynamodb_table = "terraform-state-locking"
+  #   encrypt        = true
+  # }
+  #
   required_providers {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 3.0"
     }
+    # cloudflare config
+    # cloudflare = {
+    #   source  = "cloudflare/cloudflare"
+    #   version = "~> 5"
+    # }
   }
 }
 
 provider "aws" {
   region = "us-east-1"
 }
+
+# provider "cloudflare" {
+#   api_token = var.cloudflare_api_token
+# }
 
 variable "db_pass" {
   description = "password for database"

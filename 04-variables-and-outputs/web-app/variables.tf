@@ -6,6 +6,13 @@ variable "region" {
   default     = "us-east-1"
 }
 
+# Cloudflare Variables
+variable "cloudflare_api_token" {
+  description = "api token for cloudflare."
+  type      = string
+  sensitive = true
+}
+
 # EC2 Variables
 
 variable "ami" {
